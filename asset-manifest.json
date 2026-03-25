@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/thetiktoksignal/static/css/main.5d7a5a0e.css",
+    "main.js": "/thetiktoksignal/static/js/main.634f8027.js",
+    "index.html": "/thetiktoksignal/index.html",
+    "main.5d7a5a0e.css.map": "/thetiktoksignal/static/css/main.5d7a5a0e.css.map",
+    "main.634f8027.js.map": "/thetiktoksignal/static/js/main.634f8027.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.5d7a5a0e.css",
+    "static/js/main.634f8027.js"
+  ]
+}
