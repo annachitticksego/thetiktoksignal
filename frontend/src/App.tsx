@@ -1,136 +1,219 @@
 import React, { useState } from 'react';
 import './App.css';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Music, Hash, Clock, Settings, User } from 'lucide-react';
+import { Search, Music, Hash, Clock, Copy, ChevronRight, TrendingUp, Target, Globe, BarChart3, Zap, Play, SearchCode, Check, User, Activity, SignalHigh } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
-// Mock Data
-const MOCK_HASHTAGS = [
-  { name: '#fyp', trend: 'Up', views: '2.4B' },
-  { name: '#tech', trend: 'Stable', views: '120M' },
-  { name: '#viral', trend: 'Up', views: '1.1B' },
-  { name: '#coding', trend: 'Up', views: '45M' },
-  { name: '#brisbane', trend: 'Stable', views: '12M' },
+const MOCK_GROWTH_DATA = [
+  { day: 'Mon', views: 1200 }, { day: 'Tue', views: 2100 }, { day: 'Wed', views: 1800 },
+  { day: 'Thu', views: 3400 }, { day: 'Fri', views: 4200 }, { day: 'Sat', views: 3900 }, { day: 'Sun', views: 5100 },
 ];
 
-const MOCK_SOUNDS = [
-  { name: 'Trending Sound A', useCount: '500k' },
-  { name: 'Viral Audio B', useCount: '1.2M' },
-  { name: 'New Release C', useCount: '200k' },
-];
-
-const MOCK_BEST_TIMES = [
-  { hour: '00:00', engagement: 45 },
-  { hour: '04:00', engagement: 20 },
-  { hour: '08:00', engagement: 85 },
-  { hour: '12:00', engagement: 65 },
-  { hour: '16:00', engagement: 95 },
-  { hour: '20:00', engagement: 75 },
-];
+const Logo = ({ size = "large" }) => (
+  <div className={`logo-wrap ${size}`}>
+    <div className="logo-glitch-box">
+      <SignalHigh className="signal-base" size={size === "large" ? 64 : 28} strokeWidth={2.5} />
+      <SignalHigh className="signal-glitch cyan" size={size === "large" ? 64 : 28} strokeWidth={2.5} />
+      <SignalHigh className="signal-glitch red" size={size === "large" ? 64 : 28} strokeWidth={2.5} />
+    </div>
+    <span className="logo-text-gradient">the tiktok signal</span>
+  </div>
+);
 
 function App() {
-  const [activeTab, setActiveTab] = useState('trends');
+  // --- States ---
+  const [step, setStep] = useState(0); 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [profile, setProfile] = useState({ region: 'AU', size: '1k-10k', goal: 'Reach' });
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  const handleConnect = () => {
+    setIsConnecting(true);
+    setTimeout(() => {
+      setIsConnecting(false);
+      setIsLoggedIn(true);
+    }, 1500);
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query) return;
+    setLoading(true);
+    setSelectedTags([]);
+    try {
+      const response = await fetch(`http://localhost:8000/search?query=${query}&region=${profile.region}&goal=${profile.goal}`);
+      const data = await response.json();
+      setResults(data);
+    } catch (error) {
+      const mockTags = Array.from({length: 20}, (_, i) => ({
+        hashtag_name: i === 0 ? 'fyp' : `${query}${i}`,
+        views: `${(Math.random() * 5).toFixed(1)}B`
+      }));
+      setResults({
+        hashtags: mockTags,
+        music: [{music_name: 'Viral Hit #1', use_count: '1.2M'}, {music_name: 'Trending Audio #2', use_count: '850k'}],
+        search_insights: [`How to ${query}`, `${query} hacks`, `${query} for beginners`, `best ${query} 2026`, `${query} tutorial`]
+      });
+    }
+    setLoading(false);
+  };
+
+  const toggleTag = (tagName: string) => {
+    setSelectedTags(prev => prev.includes(tagName) ? prev.filter(t => t !== tagName) : [...prev, tagName]);
+  };
+
+  const copySelected = () => {
+    const tagList = selectedTags.map(t => `#${t}`).join(' ');
+    navigator.clipboard.writeText(tagList);
+    alert(`${selectedTags.length} Hashtags copied!`);
+  };
+
+  // --- Onboarding Screens ---
+  if (step === 0) return (
+    <div className="onboarding-screen">
+      <div className="onboarding-card">
+        <Logo size="large" />
+        <p className="subtitle">Real-time data. Pure growth.</p>
+        <button className="start-btn" onClick={() => setStep(1)}>Begin Setup <ChevronRight size={20} /></button>
+      </div>
+    </div>
+  );
+
+  if (step < 4) {
+    const questions = [
+      { key: 'region', title: 'Target Audience Region', icon: <Globe size={24} color="#25f4ee" />, options: ['AU', 'US'] },
+      { key: 'size', title: 'Current Account Size', icon: <BarChart3 size={24} color="#fe2c55" />, options: ['0-1k', '1k-10k', '10k-100k', '100k+'] },
+      { key: 'goal', title: 'Primary Strategy Goal', icon: <Target size={24} color="#25f4ee" />, options: ['Reach', 'SEO', 'Engagement', 'Clarity'] }
+    ];
+    const q = questions[step - 1];
+    return (
+      <div className="onboarding-screen">
+        <div className="onboarding-card">
+          <div className="onboarding-header">
+            {q.icon}
+            <h2>{q.title}</h2>
+          </div>
+          <div className="option-grid">
+            {q.options.map(opt => (
+              <button key={opt} onClick={() => { setProfile({...profile, [q.key]: opt}); setStep(step + 1); }}>{opt}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Main Dashboard ---
   return (
-    <div className="app-container">
-      <aside className="sidebar">
-        <div className="logo">TikTok Analyzer</div>
-        <nav>
-          <button className={activeTab === 'trends' ? 'active' : ''} onClick={() => setActiveTab('trends')}>
-            <TrendingUp size={20} /> Trends
-          </button>
-          <button className={activeTab === 'analytics' ? 'active' : ''} onClick={() => setActiveTab('analytics')}>
-            <Clock size={20} /> Analytics
-          </button>
-          <button className={activeTab === 'profile' ? 'active' : ''} onClick={() => setActiveTab('profile')}>
-            <User size={20} /> My Profile
-          </button>
-          <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
-            <Settings size={20} /> Settings
-          </button>
-        </nav>
-      </aside>
+    <div className="container">
+      <header className="dashboard-header">
+        <div className="header-left">
+          <div className="badge">{profile.region} • {profile.size} • {profile.goal}</div>
+          <Logo size="small" />
+        </div>
+        <div className="header-right">
+          {!isLoggedIn ? (
+            <button className="connect-pill" onClick={handleConnect} disabled={isConnecting}>
+              {isConnecting ? "Connecting..." : <><User size={16} /> Connect TikTok</>}
+            </button>
+          ) : (
+            <div className="user-badge">
+              <div className="avatar">A</div>
+              <span>@annachittick</span>
+            </div>
+          )}
+        </div>
+      </header>
 
-      <main className="content">
-        <header>
-          <h1>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
-          <div className="user-info">Brisbane, Australia</div>
-        </header>
-
-        {activeTab === 'trends' && (
-          <div className="trends-view">
-            <section className="card">
-              <h2><Hash size={18} /> Trending Hashtags</h2>
-              <ul>
-                {MOCK_HASHTAGS.map(tag => (
-                  <li key={tag.name} className="list-item">
-                    <span>{tag.name}</span>
-                    <span className="views">{tag.views} views</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="card">
-              <h2><Music size={18} /> Trending Sounds</h2>
-              <ul>
-                {MOCK_SOUNDS.map(sound => (
-                  <li key={sound.name} className="list-item">
-                    <span>{sound.name}</span>
-                    <span className="use-count">{sound.useCount} uses</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-        )}
-
-        {activeTab === 'analytics' && (
-          <div className="analytics-view">
-            <section className="card full-width">
-              <h2>Best Time to Post (Brisbane Time)</h2>
-              <p>Based on your last 30 videos</p>
-              <div className="chart-container">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={MOCK_BEST_TIMES}>
-                    <XAxis dataKey="hour" />
-                    <YAxis hide />
-                    <Tooltip />
-                    <Bar dataKey="engagement">
-                      {MOCK_BEST_TIMES.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.engagement > 80 ? '#fe2c55' : '#25f4ee'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="recommendation">
-                <strong>Recommended Next Window:</strong> Today at 16:00 (4 PM)
-              </div>
-            </section>
-          </div>
-        )}
-
-        {activeTab === 'profile' && (
-          <div className="profile-view">
-            <p>Connect your TikTok account in Settings to view personalized analytics.</p>
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="settings-view">
-            <section className="card">
-              <h2>Account Connection</h2>
-              <button className="connect-btn">Connect TikTok Account</button>
-              <div className="api-config">
-                <h3>API Configuration</h3>
-                <input type="password" placeholder="RapidAPI Key" />
-                <input type="text" placeholder="TikTok Client Key" />
-                <button className="save-btn">Save Settings</button>
-              </div>
-            </section>
-          </div>
-        )}
+      <main className="hero-centered">
+        <form onSubmit={handleSearch} className="search-box">
+          <input type="text" placeholder={`What is your next video about?`} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <button type="submit" disabled={loading}>{loading ? <Zap size={24} className="spinning" /> : <Search size={24} />}</button>
+        </form>
       </main>
+
+      {results && (
+        <div className="results-grid">
+          <section className="section-card">
+            <div className="card-header">
+              <h2><Hash size={20} color="#fe2c55" /> Trending Hashtags</h2>
+              {selectedTags.length > 0 && <button onClick={copySelected} className="icon-btn highlight"><Copy size={16} /> Copy {selectedTags.length}</button>}
+            </div>
+            <div className="tag-list scrollable">
+              {results.hashtags.map((tag: any, i: number) => (
+                <div key={i} className={`tag-item-selectable ${selectedTags.includes(tag.hashtag_name) ? 'active' : ''}`} onClick={() => toggleTag(tag.hashtag_name)}>
+                  <div className="tag-main"><div className="checkbox">{selectedTags.includes(tag.hashtag_name) && <Check size={12} color="#000" />}</div><span className="tag-name">#{tag.hashtag_name}</span></div>
+                  <span className="tag-views">{tag.views}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="column-stack">
+            <section className="section-card">
+              <div className="card-header"><h2><SearchCode size={20} color="#25f4ee" /> Search Insights</h2></div>
+              <div className="insight-list">
+                {results.search_insights.map((insight: string, i: number) => (
+                  <div key={i} className="insight-item-small"><span>{insight}</span></div>
+                ))}
+              </div>
+            </section>
+            <section className="section-card">
+              <div className="card-header"><h2><Music size={20} color="#25f4ee" /> Trending Music</h2></div>
+              <div className="music-list">
+                {results.music.map((song: any, i: number) => (
+                  <div key={i} className="music-item-small"><Play size={14} fill="white" /><div className="music-info"><span className="song-title-small">{song.music_name}</span><span className="song-uses">{song.use_count}</span></div></div>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          <section className="section-card full-width">
+            <div className="card-header">
+              <h2><Clock size={20} color="#ff6b6b" /> {isLoggedIn ? "Personalized Strategy" : "Niche Intelligence"}</h2>
+              <span className="live-status"><div className="dot"></div> {isLoggedIn ? "Account Synced" : "Live Data"}</span>
+            </div>
+            <div className="strategy-grid">
+               <div className="time-viz">
+                  <div className="viz-header">{isLoggedIn ? "Your Followers' Peak Activity (Brisbane)" : "General Niche Peak Hours"}</div>
+                  <div className="timeline">
+                     {[8, 10, 12, 14, 16, 18, 20, 22].map(hour => (
+                        <div key={hour} className={`hour-block ${hour === (isLoggedIn ? 20 : 16) ? 'peak' : ''}`}>
+                           <div className="bar" style={{height: `${Math.random() * 100}%`}}></div>
+                           <span>{hour}h</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+               <div className="action-card">
+                  <h3>Next Best Time</h3>
+                  <div className="big-time">{isLoggedIn ? "20:00 (8 PM)" : "16:00 (4 PM)"}</div>
+                  <div className="countdown-pill">{isLoggedIn ? "Personal Peak" : "Niche Peak"} in <strong>2h 14m</strong></div>
+               </div>
+            </div>
+
+            {isLoggedIn && (
+              <div className="personal-growth">
+                <div className="growth-header"><Activity size={16} color="#25f4ee" /> Recent View Velocity</div>
+                <div style={{width: '100%', height: 150}}>
+                  <ResponsiveContainer>
+                    <LineChart data={MOCK_GROWTH_DATA}>
+                      <XAxis dataKey="day" hide />
+                      <YAxis hide />
+                      <Tooltip contentStyle={{backgroundColor: '#111', border: '1px solid #222'}} />
+                      <Line type="monotone" dataKey="views" stroke="#25f4ee" strokeWidth={3} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+      <footer className="footer">Powered by TikTok Authorized APIs</footer>
     </div>
   );
 }
